@@ -1,0 +1,1090 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Denah Lab Biologi dari Sketsa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Nunito:wght@400;600;700&display=swap">
+<style>
+/* Layout: panggung 3D di kiri, panel kontrol 340px di kanan; di HP panel turun ke bawah kanvas. */
+:root{
+  --bg:#f2f6f0; --surface:#ffffff; --fg:#1c2a21; --muted:#587062; --line:#d3dfd4;
+  --accent:#2f6b45; --accent-fg:#ffffff; --tint:#e5eee2; --stage:#dce8dc; --ok:#2e8b57; --bad:#d9534f;
+  --s1:#d98a1f; --s7:#1e88d9;
+  --font-display:'Baloo 2','Trebuchet MS',system-ui,sans-serif;
+  --font-body:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#101713; --surface:#18221c; --fg:#e6efe8; --muted:#9db0a3; --line:#2b3a30;
+    --accent:#7fcf94; --accent-fg:#0d1a11; --tint:#1f2d24; --stage:#0f1713; --ok:#5fcf8a; --bad:#ff7f78;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101713; --surface:#18221c; --fg:#e6efe8; --muted:#9db0a3; --line:#2b3a30;
+  --accent:#7fcf94; --accent-fg:#0d1a11; --tint:#1f2d24; --stage:#0f1713; --ok:#5fcf8a; --bad:#ff7f78;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.45;
+  padding-block:18px 28px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1,h2{font-family:var(--font-display);margin:0;line-height:1.1;text-wrap:balance}
+h1{font-size:clamp(26px,4.5vw,38px);font-weight:700;color:var(--accent)}
+h2{font-size:18px;font-weight:700}
+.sub{color:var(--muted);margin:6px 0 0;max-width:70ch}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+.stage{position:relative;height:min(76vh,760px);min-height:420px;border-radius:18px;overflow:hidden;background:var(--stage);border:1px solid var(--line)}
+#gl{display:block;width:100%;height:100%;touch-action:none;outline:none}
+.badges{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.tag{position:absolute;left:0;top:0;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:2px 9px;font:700 12px var(--font-body);white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.25);will-change:transform}
+.tag[hidden]{display:none}
+.bar{position:absolute;display:flex;gap:6px;flex-wrap:wrap}
+.bar.tl{top:10px;left:10px;right:150px}
+.bar.tr{top:10px;right:10px;justify-content:flex-end}
+.seg{display:flex;flex-wrap:wrap;background:color-mix(in srgb,var(--surface) 90%,transparent);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px;backdrop-filter:blur(6px)}
+button{font:600 13px var(--font-body);color:var(--fg);background:transparent;border:0;border-radius:9px;padding:7px 11px;cursor:pointer;min-height:34px}
+button:hover{background:var(--tint)}
+button:focus-visible,select:focus-visible,#gl:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+.hint{position:absolute;left:10px;bottom:10px;right:10px;display:flex;justify-content:center;pointer-events:none}
+.hint span{background:color-mix(in srgb,var(--surface) 92%,transparent);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:12.5px;color:var(--muted);text-align:center}
+.panel{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.sel{background:var(--tint)}
+.sel p{margin:0;color:var(--muted);font-size:13.5px}
+.sel b{color:var(--fg)}
+.row{display:flex;gap:6px;flex-wrap:wrap}
+.btn{background:var(--surface);border:1px solid var(--line)}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn.danger:hover{border-color:var(--bad);color:var(--bad)}
+.btn:disabled{opacity:.4;cursor:default}
+.sym{display:flex;flex-direction:column;gap:4px}
+.sym button{display:flex;gap:10px;align-items:center;text-align:left;width:100%;padding:7px 8px;border:1px solid var(--line)}
+.sym .n{flex:none;width:26px;height:26px;border-radius:50%;color:#fff;font:700 14px/26px var(--font-display);text-align:center}
+.sym .t{display:flex;flex-direction:column;min-width:0}
+.sym small{font-weight:400;font-size:12.5px;opacity:.85}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stats div{background:var(--tint);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;min-width:0}
+.stats b{font:700 22px var(--font-display);font-variant-numeric:tabular-nums}
+.stats span{font-size:12px;color:var(--muted)}
+.legend{display:flex;flex-direction:column;gap:2px}
+.legend button{display:flex;gap:10px;align-items:center;justify-content:space-between;text-align:left;width:100%;padding:6px 8px}
+.legend .t{min-width:0}
+.legend .c{flex:none;min-width:24px;text-align:center;border-radius:99px;background:var(--tint);color:var(--muted);font-variant-numeric:tabular-nums;font-size:12.5px;padding:1px 7px}
+.legend button[aria-pressed="true"]{background:var(--tint)}
+.add{display:flex;gap:6px}
+select{flex:1;min-width:0;font:600 13px var(--font-body);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:7px 8px;min-height:34px}
+.note{font-size:12.5px;color:var(--muted);margin:0}
+.dim{font-variant-numeric:tabular-nums}
+@media (max-width:900px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  .stage{height:64vh;min-height:400px}
+  .bar.tl{right:10px;top:10px}
+  .bar.tr{top:auto;bottom:52px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Denah Lab Biologi dari Sketsa</h1>
+    <p class="sub">Laboratorium 10,7 × 9,4 m dengan sepuluh meja praktikum, ruang preparasi di luar lab, dan sekat penyimpanan yang bisa digeser. Skala mengikuti sketsa: 120 px = 1 m.</p>
+  </header>
+
+  <div class="layout">
+    <section class="stage" id="stage" aria-label="Denah 3D laboratorium">
+      <canvas id="gl" tabindex="0" aria-label="Denah 3D laboratorium. Seret perabot untuk memindahkan, seret area kosong untuk memutar kamera."></canvas>
+      <div class="badges" id="badges"></div>
+      <div class="bar tl">
+        <div class="seg" role="group" aria-label="Sudut pandang">
+          <button type="button" data-view="iso" aria-pressed="true">3D</button>
+          <button type="button" data-view="top" aria-pressed="false">Denah atas</button>
+          <button type="button" data-view="door" aria-pressed="false">Dari pintu masuk</button>
+          <button type="button" data-view="prep" aria-pressed="false">Ruang preparasi</button>
+        </div>
+      </div>
+      <div class="bar tr">
+        <div class="seg" role="group" aria-label="Pengaturan">
+          <button type="button" id="tgLabel" aria-pressed="false">Label</button>
+          <button type="button" id="tgSnap" aria-pressed="true">Magnet</button>
+        </div>
+      </div>
+      <div class="hint"><span id="hint">Seret perabot untuk memindahkan. Seret area kosong untuk memutar. Dua jari untuk zoom.</span></div>
+    </section>
+
+    <aside class="panel">
+      <div class="card sel" id="selCard" aria-live="polite">
+        <h2 id="selTitle">Perabot terpilih</h2>
+        <div id="selBody"><p>Ketuk salah satu perabot di denah untuk memilihnya.</p></div>
+        <div class="row">
+          <button type="button" class="btn" id="rotL" disabled>Putar kiri</button>
+          <button type="button" class="btn" id="rotR" disabled>Putar kanan</button>
+          <button type="button" class="btn" id="doorBtn" disabled>Buka pintu</button>
+          <button type="button" class="btn danger" id="del" disabled>Hapus</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Keterangan sketsa</h2>
+        <div class="sym">
+          <button type="button" data-sym="1" aria-pressed="false"><span class="n" style="background:var(--s1)">1</span><span class="t">Colokan<small>Di kedua ujung meja dan di dinding</small></span></button>
+          <button type="button" data-sym="7" aria-pressed="false"><span class="n" style="background:var(--s7)">7</span><span class="t">Wastafel<small>Di tengah meja, ceruk kiri, dan preparasi</small></span></button>
+        </div>
+        <div class="stats">
+          <div><b id="stMeja">0</b><span>meja praktikum</span></div>
+          <div><b id="stSink">0</b><span>wastafel</span></div>
+          <div><b id="stOut">0</b><span>panel colokan</span></div>
+        </div>
+        <p class="note">Ketuk angka untuk menyorot semua colokan atau wastafel di denah.</p>
+      </div>
+
+      <div class="card">
+        <h2>Daftar perabot</h2>
+        <div class="legend" id="legend"></div>
+      </div>
+
+      <div class="card">
+        <h2>Tambah perabot</h2>
+        <div class="add">
+          <select id="addSel" aria-label="Pilih perabot"></select>
+          <button type="button" class="btn primary" id="addBtn">Tambah</button>
+        </div>
+        <div class="row">
+          <button type="button" class="btn" id="reset">Kembalikan susunan sketsa</button>
+        </div>
+        <p class="note">Susunan tersimpan otomatis di peramban ini. Tombol R memutar, panah menggeser, Spasi membuka pintu, Delete menghapus. Sekat hanya bisa digeser ke atas dan bawah.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+'use strict';
+var THREE = window.THREE, PI = Math.PI;
+var stage = document.getElementById('stage');
+var canvas = document.getElementById('gl');
+function cssv(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+/* ---------- renderer, scene, camera ---------- */
+var renderer = new THREE.WebGLRenderer({canvas:canvas, antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+var scene = new THREE.Scene();
+var camera = new THREE.PerspectiveCamera(40, 1, 0.1, 120);
+
+/* Koordinat dunia (m), skala sketsa 120 px = 1 m, pusat = pusat laboratorium.
+   Lab: x -4,875..4,875 dan z -4,7..4,7. Ruang di luar lab (kanan): x 4,975..8,475. */
+var LX = 4.875, LZ = 4.7, AX0 = 4.975, AX1 = 8.475;
+var DZ = [
+  {x0:3.9,   x1:4.875, z0:2.0, z1:2.9, name:'pintu preparasi (sisi lab)'},
+  {x0:4.975, x1:5.85,  z0:2.0, z1:2.9, name:'pintu preparasi (sisi preparasi)'},
+  {x0:2.065, x1:3.255, z0:3.7, z1:4.7, name:'pintu masuk'}
+];
+var VIEWS = {
+  iso:   {pos:new THREE.Vector3(1.6,13.2,14.2), tgt:new THREE.Vector3(1.4,0,0.4)},
+  top:   {pos:new THREE.Vector3(1.4,27,0.01),   tgt:new THREE.Vector3(1.4,0,0)},
+  door:  {pos:new THREE.Vector3(2.66,1.7,9.6),  tgt:new THREE.Vector3(0.5,1.0,-2.5)},
+  prep:  {pos:new THREE.Vector3(6.7,8.4,9.6),   tgt:new THREE.Vector3(6.7,0,0.2)}
+};
+camera.position.copy(VIEWS.iso.pos);
+
+var controls = new THREE.OrbitControls(camera, canvas);
+controls.target.copy(VIEWS.iso.tgt);
+controls.enableDamping = true; controls.dampingFactor = 0.12;
+controls.minDistance = 3; controls.maxDistance = 40;
+controls.minPolarAngle = 0; controls.maxPolarAngle = 1.5;
+controls.minAzimuthAngle = -1.4; controls.maxAzimuthAngle = 1.4;
+controls.screenSpacePanning = false;
+
+function applyTheme(){ scene.background = new THREE.Color(cssv('--stage') || '#dce8dc'); }
+applyTheme();
+try{
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+  new MutationObserver(applyTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+}catch(e){}
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0xcfd6cf, 0.95));
+var sun = new THREE.DirectionalLight(0xfff3df, 0.8);
+sun.position.set(7,16,10); sun.castShadow = true;
+sun.target.position.set(1.4,0,0); scene.add(sun.target);
+sun.shadow.mapSize.set(4096,4096);
+sun.shadow.camera.left=-12; sun.shadow.camera.right=12; sun.shadow.camera.top=9; sun.shadow.camera.bottom=-9;
+sun.shadow.camera.near=1; sun.shadow.camera.far=40; sun.shadow.bias=-0.0003;
+scene.add(sun);
+
+/* ---------- helpers ---------- */
+var matCache = {}, geoCache = {}, texCache = {};
+function mat(color,o){
+  o=o||{}; var k=color+JSON.stringify(o);
+  if(!matCache[k]) matCache[k]=new THREE.MeshStandardMaterial(Object.assign({color:color,roughness:0.7,metalness:0},o));
+  return matCache[k];
+}
+function boxGeo(w,h,d){ var k='b'+w+'_'+h+'_'+d; return geoCache[k]||(geoCache[k]=new THREE.BoxGeometry(w,h,d)); }
+function cylGeo(rt,rb,h,s){ var k='c'+rt+'_'+rb+'_'+h+'_'+s; return geoCache[k]||(geoCache[k]=new THREE.CylinderGeometry(rt,rb,h,s)); }
+function mk(geo,m,o){ var me=new THREE.Mesh(geo,m); var glass=o&&o.transparent; me.castShadow=!glass; me.receiveShadow=true; return me; }
+function box(w,h,d,c,o){ return mk(boxGeo(w,h,d),mat(c,o),o); }
+function cyl(rt,rb,h,c,o,s){ return mk(cylGeo(rt,rb,h,s||18),mat(c,o),o); }
+function at(m,x,y,z){ m.position.set(x,y,z); return m; }
+var GLASS = {transparent:true,opacity:0.22,roughness:0.05,metalness:0.1,depthWrite:false};
+var METAL = {metalness:0.6,roughness:0.4};
+var STEEL = '#aab3b9';
+
+/* material khusus yang bisa disorot lewat keterangan 1 (colokan) dan 7 (wastafel) */
+var OUTLET_MAT = new THREE.MeshStandardMaterial({color:0x15181b, roughness:0.5, emissive:0xffb81c, emissiveIntensity:0});
+var SINK_MAT   = new THREE.MeshStandardMaterial({color:0xb4bec4, roughness:0.3, metalness:0.7, emissive:0x1e9bff, emissiveIntensity:0});
+
+function plate(text,w,h,bg,fg){
+  var k=text+bg+fg;
+  if(!texCache[k]){
+    var c=document.createElement('canvas'); c.width=256; c.height=Math.max(32,Math.round(256*h/w));
+    var x=c.getContext('2d'); x.fillStyle=bg; x.fillRect(0,0,c.width,c.height);
+    x.fillStyle=fg; x.font='700 '+Math.round(c.height*0.58)+'px sans-serif'; x.textAlign='center'; x.textBaseline='middle';
+    x.fillText(text,c.width/2,c.height/2+2);
+    var t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.anisotropy=4; texCache[k]=t;
+  }
+  return new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:texCache[k]}));
+}
+/* tulisan transparan di lantai */
+function decal(text,w,h,fg){
+  var c=document.createElement('canvas'); c.width=1024; c.height=Math.max(64,Math.round(1024*h/w));
+  var x=c.getContext('2d'); x.clearRect(0,0,c.width,c.height);
+  x.fillStyle=fg; x.font='700 '+Math.round(c.height*0.55)+'px sans-serif'; x.textAlign='center'; x.textBaseline='middle';
+  x.fillText(text,c.width/2,c.height/2);
+  var t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.anisotropy=8;
+  var m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false}));
+  m.rotation.x=-PI/2; return m;
+}
+/* ---------- komponen ---------- */
+function bottle(body,cap,h,r){
+  var g=new THREE.Group();
+  g.add(at(cyl(r,r,h*0.72,body,{roughness:0.25,metalness:0.05},14),0,h*0.36,0));
+  g.add(at(cyl(r*0.45,r*0.7,h*0.16,body,{roughness:0.25},12),0,h*0.8,0));
+  g.add(at(cyl(r*0.5,r*0.5,h*0.1,cap,{roughness:0.5},12),0,h*0.93,0));
+  g.add(at(box(r*1.5,h*0.28,0.004,'#f6f4ee'),0,h*0.34,r+0.001));
+  return g;
+}
+function microscope(s){
+  var g=new THREE.Group(), w='#e9ecef', k='#2b3036';
+  g.add(at(box(0.15,0.025,0.2,k),0,0.0125,0));
+  var arm=at(cyl(0.016,0.016,0.26,w),0,0.15,-0.06); arm.rotation.x=-0.28; g.add(arm);
+  var tube=at(cyl(0.022,0.022,0.15,w),0,0.29,0.0); tube.rotation.x=0.5; g.add(tube);
+  g.add(at(cyl(0.012,0.012,0.06,k),0,0.22,0.07));
+  g.add(at(cyl(0.026,0.026,0.02,'#9aa0a6'),0,0.19,0.065));
+  g.add(at(box(0.11,0.012,0.11,'#8f969c'),0,0.13,0.035));
+  var eye=at(cyl(0.014,0.014,0.05,k),0,0.36,-0.04); eye.rotation.x=0.5; g.add(eye);
+  g.scale.setScalar(s||1); return g;
+}
+/* kotak penyimpanan dengan tutup berwarna */
+function bin(w,d,h,lid,label){
+  var g=new THREE.Group();
+  g.add(at(box(w,h,d,'#e7eef0',{transparent:true,opacity:0.8,roughness:0.15,depthWrite:false}),0,h/2,0));
+  g.add(at(box(w+0.015,0.03,d+0.015,lid),0,h+0.015,0));
+  var p=plate(label,w*0.7,h*0.38,'#ffffff','#26323a'); p.position.set(0,h*0.5,d/2+0.003); g.add(p);
+  return g;
+}
+function shelfFrame(g,w,h,d,c,n,opt){
+  opt=opt||{};
+  var up=opt.posts||0.03;
+  if(opt.posts){
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(function(s){ g.add(at(cyl(0.014,0.014,h,STEEL,METAL,8),s[0]*(w/2-0.02),h/2,s[1]*(d/2-0.02))); });
+  }else{
+    g.add(at(box(up,h,d,c),-w/2+up/2,h/2,0)); g.add(at(box(up,h,d,c),w/2-up/2,h/2,0));
+    g.add(at(box(w,up,d,c),0,h-up/2,0));
+    g.add(at(box(w,h,0.02,opt.back||'#c9d0d4'),0,h/2,-d/2+0.01));
+  }
+  g.add(at(box(w,0.08,d,'#3a4147'),0,0.04,0));
+  var ys=[];
+  for(var k=0;k<n;k++){
+    var y=0.1+k*((h-0.14)/n);
+    ys.push(y+0.02);
+    if(k>0||opt.posts){
+      if(opt.posts){
+        g.add(at(box(w-0.02,0.012,d-0.02,STEEL,METAL),0,y,0));
+        g.add(at(box(w-0.02,0.025,0.012,STEEL,METAL),0,y-0.008,d/2-0.012));
+      }else g.add(at(box(w-0.04,0.025,d-0.02,c),0,y,0));
+    }
+  }
+  return ys;
+}
+function addDoor(g,hx,hz,w,h,side,glass){
+  /* engsel di tepi hx; daun memanjang ke arah tengah unit */
+  var dir=(hx>0)?-1:1, pv=new THREE.Group(); pv.position.set(hx,0,hz);
+  var fr=new THREE.Group();
+  fr.add(at(box(w,0.04,0.025,'#7d8a92',METAL),0,h/2-0.02,0));
+  fr.add(at(box(w,0.04,0.025,'#7d8a92',METAL),0,-h/2+0.02,0));
+  fr.add(at(box(0.04,h,0.025,'#7d8a92',METAL),-w/2+0.02,0,0));
+  fr.add(at(box(0.04,h,0.025,'#7d8a92',METAL),w/2-0.02,0,0));
+  fr.add(at(box(w-0.04,h-0.08,0.012,glass||'#cfe6f2',GLASS),0,0,0));
+  fr.add(at(box(0.018,0.38,0.03,'#6f787e',METAL),dir*(w/2-0.06),0,0.025));
+  fr.position.set(dir*w/2,h/2,0.02); pv.add(fr);
+  g.add(pv);
+  return pv;
+}
+function finish(g,w,d,h,doors){
+  g.userData.dims={w:w,d:d,h:h}; g.userData.doors=doors||[]; g.userData.doorOpen=false; return g;
+}
+
+/* ---------- lima unit dari gambar ---------- */
+function buildKimia(){
+  var w=1.3,d=0.55,h=1.95,g=new THREE.Group(), c='#7e8b94';
+  var ys=shelfFrame(g,w,h,d,c,4);
+  var cats=[['ASAM  A-Z','#d9423c'],['BASA  A-Z','#3b82c4'],['GARAM  A-Z','#eef1f2'],['PELARUT  A-Z','#e0a020']];
+  var bodies=['#c98a22','#d6ebd2','#c98a22','#b7d5e6','#c98a22'];
+  for(var k=0;k<4;k++){
+    var y=ys[k]+(k>0?0.0125:0);
+    for(var i=0;i<9;i++){
+      var x=-w/2+0.1+i*0.1175, bh=0.26-((i+k)%3)*0.02;
+      var b1=bottle(bodies[(i+k)%5],cats[k][1],bh,0.034); b1.position.set(x,y,0.1); g.add(b1);
+      var b2=bottle(bodies[(i+k+2)%5],cats[k][1],bh+0.02,0.03); b2.position.set(x+0.04,y,-0.1); g.add(b2);
+    }
+    var p=plate(cats[k][0],0.5,0.05,'#26323a','#ffffff'); p.position.set(-w/2+0.3,y-0.012,d/2-0.002); g.add(p);
+  }
+  var dw=(w-0.06)/2;
+  var d1=addDoor(g,-w/2+0.01,d/2,dw,h-0.14,-1), d2=addDoor(g,w/2-0.01,d/2,dw,h-0.14,1);
+  d1.position.y=0.1; d2.position.y=0.1;
+  return finish(g,w,d,h,[{pv:d1,ang:-1.75},{pv:d2,ang:1.75}]);
+}
+function buildGelas(){
+  var w=1.1,d=0.5,h=1.8,g=new THREE.Group(), c='#8d98a0';
+  var ys=shelfFrame(g,w,h,d,c,4,{posts:1});
+  var lids=[['#f4f6f6','#4b8fd1','#4ca37a'],['#d9534f','#4b8fd1','#4ca37a'],['#8b6cc1','#4b8fd1','#4ca37a'],['#d8c9a3','#4b8fd1','#4ca37a']];
+  var names=[['Beaker','Erlenmeyer','Labu Ukur'],['Tabung Reaksi','Pipet','Cawan Petri'],['Pinset','Spatula','Gunting'],['Penjepit','Kaki Tiga','Statif']];
+  for(var k=0;k<4;k++){
+    for(var i=0;i<3;i++){
+      var b=bin(0.3,0.38,0.22-(k===3?0.03:0),lids[k][i],names[k][i]); b.position.set(-0.34+i*0.34,ys[k]+0.006,0); g.add(b);
+    }
+  }
+  return finish(g,w,d,h);
+}
+function buildMikro(){
+  var w=1.1,d=0.5,h=1.8,g=new THREE.Group(), c='#8b979f';
+  var ys=shelfFrame(g,w,h,d,c,3,{posts:1});
+  [-0.4,-0.2,0,0.2,0.4].forEach(function(x){ var m=microscope(1); m.position.set(x,ys[2]+0.006,0); g.add(m); });
+  [-0.3,0,0.3].forEach(function(x){ var m=microscope(1); m.position.set(x,ys[1]+0.006,0); g.add(m); });
+  var au=box(0.32,0.28,0.3,'#4a5058',{roughness:0.5}); au.position.set(-0.34,ys[0]+0.14,0); g.add(au);
+  g.add(at(box(0.18,0.1,0.01,'#9aa0a6'),-0.34,ys[0]+0.2,0.155));
+  [0.1,0.4].forEach(function(x){ var m=microscope(1); m.position.set(x,ys[0]+0.006,0); g.add(m); });
+  g.add(at(plate('MIKROSKOP',0.4,0.05,'#26323a','#ffffff'),0.3,ys[2]-0.015,d/2-0.01));
+  return finish(g,w,d,h);
+}
+function buildFridge(){
+  var w=0.75,d=0.7,h=1.9,g=new THREE.Group();
+  g.add(at(box(0.04,h,d,'#d5e2ea',{metalness:0.3,roughness:0.3}),-w/2+0.02,h/2,0));
+  g.add(at(box(0.04,h,d,'#d5e2ea',{metalness:0.3,roughness:0.3}),w/2-0.02,h/2,0));
+  g.add(at(box(w,0.05,d,'#d5e2ea',{metalness:0.3,roughness:0.3}),0,h-0.025,0));
+  g.add(at(box(w,0.1,d,'#b9c9d3',{metalness:0.3,roughness:0.3}),0,0.05,0));
+  g.add(at(box(w,h,0.03,'#e9f2f7'),0,h/2,-d/2+0.015));
+  var cols=['#7bb7d6','#e8f0f4','#e0a020','#d9534f'];
+  for(var k=0;k<4;k++){
+    var y=0.2+k*0.42;
+    g.add(at(box(w-0.08,0.015,d-0.1,'#e6f1f6',{transparent:true,opacity:0.7,depthWrite:false}),0,y,0));
+    for(var i=0;i<3;i++){ var b=bottle(cols[(i+k)%4],cols[(i+k+1)%4],0.2,0.032); b.position.set(-0.2+i*0.12,y+0.008,0.05); g.add(b); }
+    g.add(at(box(0.16,0.12,0.2,'#c9b79a'),0.22,y+0.07,0.02));
+    var p=plate('SPESIMEN',0.14,0.04,'#ffffff','#26323a'); p.position.set(0.22,y+0.07,0.123); g.add(p);
+  }
+  var disp=plate('4°C',0.1,0.045,'#10261a','#6cf2a2'); disp.position.set(0,h-0.12,d/2-0.045); g.add(disp);
+  var pv=addDoor(g,w/2-0.02,d/2,w-0.06,h-0.2,1,'#a8d3e6'); pv.position.y=0.12;
+  return finish(g,w,d,h,[{pv:pv,ang:1.8}]);
+}
+function buildBio(){
+  var w=1.2,d=0.5,h=1.9,g=new THREE.Group();
+  var ys=shelfFrame(g,w,h,d,STEEL,8,{posts:1});
+  var tr=['#f2f2ee','#b79a74','#e8e1d0','#c9b79a','#ffffff','#a88a63'];
+  for(var k=0;k<8;k++){
+    if(k===7){
+      for(var i=0;i<6;i++){ var b=bottle(i%2?'#8a5a2b':'#c98a22','#3a3f45',0.14,0.04); b.position.set(-0.45+i*0.18,ys[k]+0.006,0.05); g.add(b); }
+      continue;
+    }
+    for(var j=0;j<4;j++){
+      var bx=0.24, bh=0.12+((j+k)%2)*0.02;
+      var bb=box(bx,bh,0.36,tr[(j*2+k)%6]); bb.position.set(-0.43+j*0.285,ys[k]+bh/2+0.006,0); g.add(bb);
+      g.add(at(box(bx+0.01,0.02,0.37,'#e8edf0'),-0.43+j*0.285,ys[k]+bh+0.016,0));
+    }
+  }
+  g.add(at(plate('AWETAN / SPESIMEN',0.6,0.05,'#26323a','#ffffff'),0,h-0.025,d/2+0.001));
+  return finish(g,w,d,h);
+}
+
+/* ---------- ruang & dinding ---------- */
+function tileTex(w,d,base,line){
+  var cv=document.createElement('canvas'); cv.width=cv.height=128;
+  var x=cv.getContext('2d'); x.fillStyle=base; x.fillRect(0,0,128,128);
+  x.strokeStyle=line; x.lineWidth=3; x.strokeRect(0,0,128,128);
+  var t=new THREE.CanvasTexture(cv); t.encoding=THREE.sRGBEncoding;
+  t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(w/0.6,d/0.6); t.anisotropy=8; return t;
+}
+function floorPlane(x0,x1,z0,z1,base,line){
+  var f=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),new THREE.MeshStandardMaterial({map:tileTex(x1-x0,z1-z0,base,line),roughness:0.55}));
+  f.rotation.x=-PI/2; f.position.set((x0+x1)/2,0,(z0+z1)/2); f.receiveShadow=true; scene.add(f); return f;
+}
+var WALLC='#eef1ec', WH=3.0, LX0=-5.835;
+function wallX(x,z0,z1,y0,y1){ var m=box(0.1,y1-y0,z1-z0,WALLC); m.position.set(x,(y0+y1)/2,(z0+z1)/2); scene.add(m); return m; }
+function wallZ(z,x0,x1,y0,y1){ var m=box(x1-x0,y1-y0,0.1,WALLC); m.position.set((x0+x1)/2,(y0+y1)/2,z); scene.add(m); return m; }
+
+(function buildShell(){
+  var slab=box(14.6,0.12,9.8,'#59675e'); slab.position.set(1.2,-0.061,0); slab.castShadow=false; scene.add(slab);
+  floorPlane(LX0,LX,-LZ,LZ,'#ebe6d8','#cdc6b3');                     /* laboratorium */
+  floorPlane(AX0,AX1,-LZ,LZ,'#dfe5e2','#bcc7c2');                    /* ruang di luar lab */
+  var gap=box(0.1,0.01,9.4,'#47564d'); gap.position.set(4.925,0.005,0); scene.add(gap);
+
+  wallZ(-4.75,-5.935,8.575,0,WH);                                    /* dinding belakang */
+  wallX(-5.885,-4.8,4.8,0,WH);                                        /* dinding kiri lab, lurus tanpa ceruk */
+  wallX(4.925,-4.8,2.0,0,WH); wallX(4.925,2.9,4.8,0,WH); wallX(4.925,2.0,2.9,2.1,WH);  /* dinding kanan lab + pintu preparasi */
+  wallX(8.525,-4.8,4.8,0,WH);                                         /* dinding kanan ruang preparasi */
+  wallZ(4.75,-5.935,8.575,0,0.14);                                    /* dinding depan dipotong rendah */
+
+  /* jendela di dinding belakang lab */
+  [-3.3,-0.3,2.7].forEach(function(wx){
+    scene.add(at(box(1.8,1.1,0.06,'#c9d1cc'),wx,1.9,-4.68));
+    scene.add(at(box(1.66,0.96,0.03,'#bfe4f7',{emissive:'#7fc3e6',emissiveIntensity:0.45,roughness:0.1}),wx,1.9,-4.66));
+  });
+  var sign=plate('LABORATORIUM BIOLOGI',3.4,0.34,'#2f6b45','#ffffff'); sign.position.set(0.6,2.65,-4.69); scene.add(sign);
+
+  /* pintu masuk (dinding depan) */
+  var wood='#8a6a47', green='#3b8a3a';
+  scene.add(at(box(0.08,2.2,0.14,green),2.025,1.1,4.75)); scene.add(at(box(0.08,2.2,0.14,green),3.295,1.1,4.75));
+  scene.add(at(box(1.35,0.08,0.14,green),2.66,2.2,4.75));
+  var l1=new THREE.Group(); l1.position.set(2.065,0,4.75); l1.add(at(box(0.6,2.1,0.04,wood),0.3,1.05,0)); l1.rotation.y=-1.25; scene.add(l1);
+  var l2=new THREE.Group(); l2.position.set(3.255,0,4.75); l2.add(at(box(0.6,2.1,0.04,wood),-0.3,1.05,0)); l2.rotation.y=1.25; scene.add(l2);
+  var pm=plate('PINTU MASUK',0.9,0.2,'#2e9e4a','#ffffff'); pm.position.set(2.66,2.42,4.83); scene.add(pm);
+
+  /* pintu masuk ruang preparasi, di dalam lab */
+  scene.add(at(box(0.12,2.1,0.08,green),4.925,1.05,1.96)); scene.add(at(box(0.12,2.1,0.08,green),4.925,1.05,2.94));
+  var pl=new THREE.Group(); pl.position.set(4.925,0,2.9); pl.add(at(box(0.04,2.0,0.85,wood),0,1.0,-0.425)); pl.rotation.y=-1.3; scene.add(pl);
+  var pp=plate('KE RUANG PREPARASI',1.1,0.2,'#2e9e4a','#ffffff'); pp.position.set(4.86,2.4,2.45); pp.rotation.y=-PI/2; scene.add(pp);
+
+  /* area bebas pintu */
+  DZ.forEach(function(d){
+    var z=new THREE.Mesh(new THREE.PlaneGeometry(d.x1-d.x0,d.z1-d.z0),new THREE.MeshBasicMaterial({color:0x3fa34d,transparent:true,opacity:0.2,depthWrite:false}));
+    z.rotation.x=-PI/2; z.position.set((d.x0+d.x1)/2,0.012,(d.z0+d.z1)/2); scene.add(z);
+  });
+
+  /* tulisan ruangan di lantai */
+  var t1=decal('LABORATORIUM BIOLOGI',4.2,0.4,'rgba(47,107,69,0.55)'); t1.position.set(-1.6,0.014,3.3); scene.add(t1);
+  var t2=decal('RUANG PREPARASI · PENYIMPANAN ALAT & BAHAN',3.3,0.26,'rgba(47,107,69,0.6)'); t2.position.set(6.7,0.014,3.0); scene.add(t2);
+  var t3=decal('PENYIMPANAN MIKROSKOP',3.0,0.28,'rgba(47,107,69,0.6)'); t3.position.set(6.7,0.014,-2.2); scene.add(t3);
+})();
+
+var FIXED_SINKS = 0;
+
+/* ---------- perabot baru ---------- */
+function outletPod(w,d,n){
+  var g=new THREE.Group();
+  g.add(at(mk(boxGeo(w,0.03,d),OUTLET_MAT),0,0.015,0));
+  var gap=w/n;
+  for(var i=0;i<n;i++){
+    var x=-w/2+gap*(i+0.5);
+    g.add(at(box(0.11,0.012,0.075,'#f4f4f0',{roughness:0.4}),x,0.036,0));
+    g.add(at(box(0.016,0.014,0.016,'#222'),x-0.024,0.041,0)); g.add(at(box(0.016,0.014,0.016,'#222'),x+0.024,0.041,0));
+  }
+  return g;
+}
+function stool(x,z){
+  var s=new THREE.Group();
+  s.add(at(cyl(0.12,0.12,0.04,'#b98b55'),0,0.47,0));
+  s.add(at(cyl(0.025,0.025,0.45,'#6b5036',{},10),0,0.23,0));
+  s.add(at(cyl(0.11,0.11,0.02,'#4a4f55'),0,0.01,0));
+  s.position.set(x,0,z); return s;
+}
+function faucet(g,x,y,z,dirZ){
+  g.add(at(cyl(0.015,0.015,0.28,STEEL,METAL,10),x,y+0.14,z));
+  var sp=at(cyl(0.012,0.012,0.17,STEEL,METAL,10),x,y+0.28,z+dirZ*0.085); sp.rotation.x=PI/2; g.add(sp);
+}
+function beaker(x,y,z){ return at(cyl(0.04,0.04,0.11,'#bcdcf0',{transparent:true,opacity:0.5,roughness:0.1,depthWrite:false}),x,y+0.055,z); }
+
+function buildTable(){
+  var w=0.55, L=2.75, g=new THREE.Group();
+  g.add(at(box(w,0.05,L,'#e7eaeb',{roughness:0.35}),0,0.795,0));
+  [-1,1].forEach(function(sx){ [-1,1].forEach(function(sz){ g.add(at(box(0.05,0.77,0.05,'#8d959c',METAL),sx*(w/2-0.04),0.385,sz*(L/2-0.1))); }); });
+  [-1,1].forEach(function(sz){ g.add(at(box(w-0.06,0.04,0.04,'#8d959c',METAL),0,0.3,sz*(L/2-0.1))); });
+  [-1,1].forEach(function(sx){ g.add(at(box(0.04,0.04,L-0.2,'#8d959c',METAL),sx*(w/2-0.04),0.3,0)); });
+  [-1,1].forEach(function(s){ g.add(at(outletPod(0.46,0.42,2),0,0.82,s*(L/2-0.26))); });   /* colokan di kedua ujung (angka 1) */
+  g.add(at(mk(boxGeo(0.4,0.014,0.5),SINK_MAT),0,0.827,0));                                    /* wastafel di tengah (angka 7) */
+  g.add(at(box(0.34,0.006,0.44,'#5f696f',METAL),0,0.837,0));
+  g.add(at(cyl(0.02,0.02,0.01,'#222',{},10),0,0.842,0.1));
+  faucet(g,0,0.82,-0.33,1);
+  [-0.8,0,0.8].forEach(function(z){ g.add(stool(-0.33,z)); g.add(stool(0.33,z)); });
+  g.userData.sinks=1; g.userData.outlets=2;
+  return finish(g,w,L,0.9);
+}
+function buildMejaKiri(){
+  var L=9.4, d=0.96, g=new THREE.Group();
+  g.userData.sinks=0;
+  g.add(at(box(L,0.05,d,'#e7eaeb',{roughness:0.35}),0,0.825,0));
+  [-1,1].forEach(function(s){
+    var cx=s*3.825;                                                    /* ujung = wastafel (angka 7) */
+    g.add(at(box(1.75,0.8,d-0.04,'#d4d9db'),cx,0.4,-0.02));
+    g.add(at(box(1.75,0.08,d-0.1,'#3a4147'),cx,0.04,-0.02));
+    for(var i=0;i<2;i++){
+      g.add(at(box(0.83,0.64,0.015,'#c3cacd'),cx+(i?0.43:-0.43),0.42,d/2-0.012));
+      g.add(at(box(0.1,0.025,0.02,'#7d868c',METAL),cx+(i?0.1:-0.1),0.62,d/2+0.004));
+    }
+    g.add(at(mk(boxGeo(0.62,0.014,0.5),SINK_MAT),cx,0.857,0.05));
+    g.add(at(box(0.54,0.006,0.42,'#5f696f',METAL),cx,0.867,0.05));
+    g.add(at(cyl(0.02,0.02,0.01,'#222',{},10),cx,0.872,0.1));
+    faucet(g,cx,0.85,-0.3,1);
+    g.userData.sinks++;
+  });
+  var xs=[-2.9,-1.45,0,1.45,2.9];                                      /* tengah = meja panjang */
+  xs.forEach(function(x){ [-1,1].forEach(function(sz){ g.add(at(box(0.05,0.8,0.05,'#8d959c',METAL),x,0.4,sz*(d/2-0.06))); }); });
+  [-1,1].forEach(function(sz){ g.add(at(box(5.85,0.04,0.04,'#8d959c',METAL),0,0.3,sz*(d/2-0.06))); });
+  for(var k=-3;k<=3;k++) g.add(stool(k*0.8,0.5));
+  g.add(beaker(-1.9,0.85,-0.1)); g.add(beaker(-1.7,0.85,0.1)); g.add(beaker(1.6,0.85,-0.05));
+  var m=microscope(1); m.position.set(0.4,0.85,-0.1); g.add(m);
+  return finish(g,L,d,1.15);
+}
+function buildBench(len,pods){
+  var d=0.7, g=new THREE.Group();
+  g.add(at(box(len-0.1,0.08,d-0.1,'#3a4147'),0,0.04,0));
+  g.add(at(box(len,0.76,d,'#d4d9db'),0,0.46,0));
+  g.add(at(box(len+0.04,0.04,d+0.04,'#3d444a',{roughness:0.4}),0,0.86,0));
+  var n=Math.max(2,Math.round(len/0.8)), w=len/n;
+  for(var i=0;i<n;i++){
+    var x=-len/2+w*(i+0.5);
+    g.add(at(box(w-0.03,0.66,0.015,'#c3cacd'),x,0.46,d/2+0.006));
+    g.add(at(box(0.1,0.025,0.02,'#7d868c',METAL),x,0.7,d/2+0.025));
+  }
+  pods.forEach(function(px){
+    g.add(at(mk(boxGeo(0.95,0.14,0.05),OUTLET_MAT),px,1.0,-d/2+0.03));
+    for(var k=0;k<4;k++){
+      var sx=px-0.33+k*0.22;
+      g.add(at(box(0.09,0.09,0.012,'#f4f4f0',{roughness:0.4}),sx,1.0,-d/2+0.06));
+      g.add(at(box(0.014,0.02,0.014,'#222'),sx-0.02,1.0,-d/2+0.068)); g.add(at(box(0.014,0.02,0.014,'#222'),sx+0.02,1.0,-d/2+0.068));
+    }
+  });
+  for(var j=0;j<Math.floor(len/1.6);j++){ g.add(beaker(-len/2+0.5+j*1.6,0.88,0.0)); }
+  g.userData.outlets=pods.length;
+  return finish(g,len,d,1.1);
+}
+function chair(){
+  var c=new THREE.Group();
+  c.add(at(box(0.45,0.06,0.45,'#2c3339'),0,0.48,0));
+  c.add(at(box(0.45,0.5,0.05,'#2c3339'),0,0.78,-0.22));
+  c.add(at(cyl(0.03,0.03,0.4,'#7c858b',METAL),0,0.26,0));
+  c.add(at(cyl(0.26,0.26,0.03,'#3a4147'),0,0.03,0));
+  return c;
+}
+function buildGuru(){
+  var g=new THREE.Group();
+  g.add(at(box(1.2,0.05,0.65,'#c58a4c'),0,0.74,-0.35));
+  g.add(at(box(0.04,0.72,0.62,'#a97238'),-0.56,0.36,-0.35)); g.add(at(box(0.04,0.72,0.62,'#a97238'),0.56,0.36,-0.35));
+  g.add(at(box(0.4,0.55,0.58,'#b57d3f'),0.36,0.45,-0.35));
+  g.add(at(box(1.12,0.4,0.02,'#a97238'),0,0.52,-0.64));
+  g.add(at(box(0.32,0.015,0.22,'#aab0b5',METAL),-0.3,0.775,-0.35));
+  var scr=at(box(0.32,0.22,0.01,'#2a2f35'),-0.3,0.89,-0.47); scr.rotation.x=-0.25; g.add(scr);
+  var ch=chair(); ch.position.set(0,0,0.15); ch.rotation.y=PI; g.add(ch);
+  return finish(g,1.4,1.4,1.1);
+}
+function buildDemo(){
+  var w=0.83, L=4.2, g=new THREE.Group();
+  g.add(at(box(w,0.05,L,'#f1f3f3',{roughness:0.3}),0,0.895,0));
+  g.add(at(box(w-0.1,0.5,L-0.2,'#d4d9db'),0,0.6,0));
+  g.add(at(box(w,0.1,L,'#3a4147'),0,0.05,0));
+  for(var i=0;i<6;i++) g.add(at(box(0.015,0.46,0.55,'#c3cacd'),w/2-0.04,0.6,-L/2+0.5+i*0.64));
+  var m1=microscope(1); m1.position.set(0,0.92,-1.4); m1.rotation.y=PI/2; g.add(m1);
+  var m2=microscope(1); m2.position.set(0,0.92,-0.6); m2.rotation.y=PI/2; g.add(m2);
+  [0.3,0.5,0.7].forEach(function(z){ g.add(beaker(-0.15,0.92,z)); });
+  g.add(at(box(0.3,0.04,0.22,'#4a5058'),0.1,0.94,1.3));
+  g.add(at(cyl(0.07,0.07,0.04,'#c9d1d6',{},16),0.1,0.98,1.3));
+  return finish(g,w,L,1.1);
+}
+function buildBoard(){
+  var W=3.95, D=0.75, g=new THREE.Group();
+  var zone=new THREE.Mesh(new THREE.PlaneGeometry(W,D),new THREE.MeshBasicMaterial({color:0x3fa34d,transparent:true,opacity:0.1,depthWrite:false}));
+  zone.rotation.x=-PI/2; zone.position.set(0,0.011,0); zone.raycast=function(){}; g.add(zone);
+  g.add(at(box(3.8,1.25,0.04,'#c8cdd1'),0,1.65,-D/2+0.03));
+  g.add(at(box(3.7,1.15,0.02,'#fbfcfc',{roughness:0.3}),0,1.65,-D/2+0.06));
+  g.add(at(box(3.7,0.04,0.09,'#8e969b'),0,1.02,-D/2+0.08));
+  g.add(at(box(0.12,0.02,0.02,'#2f6bd1'),-0.5,1.05,-D/2+0.08)); g.add(at(box(0.12,0.02,0.02,'#d9534f'),-0.3,1.05,-D/2+0.08));
+  g.add(at(box(W,0.03,D,'#d9e6dc',{transparent:true,opacity:0.7,depthWrite:false}),0,0.015,0));
+  return finish(g,W,D,2.3);
+}
+function buildApar(){
+  var g=new THREE.Group();
+  var red='#d8322c';
+  g.add(at(box(1.06,0.012,0.03,red),0,0.006,0.515)); g.add(at(box(1.06,0.012,0.03,red),0,0.006,-0.515));
+  g.add(at(box(0.03,0.012,1.0,red),0.515,0.006,0)); g.add(at(box(0.03,0.012,1.0,red),-0.515,0.006,0));
+  [-0.2,0.2].forEach(function(x){
+    g.add(at(cyl(0.085,0.085,0.45,red,{roughness:0.35}),x,0.3,-0.4));
+    g.add(at(cyl(0.035,0.085,0.07,red),x,0.565,-0.4));
+    g.add(at(cyl(0.03,0.03,0.08,'#222',{},10),x,0.64,-0.4));
+    g.add(at(box(0.13,0.03,0.03,'#222'),x+0.03,0.7,-0.4));
+  });
+  g.add(at(box(0.5,0.04,0.2,'#555b60'),0,0.02,-0.4));
+  g.add(at(box(0.42,0.3,0.12,'#f4f4f2'),0,1.3,-0.46));
+  g.add(at(box(0.22,0.06,0.01,red),0,1.3,-0.397)); g.add(at(box(0.06,0.22,0.01,red),0,1.3,-0.396));
+  var p=plate('APAR & P3K',0.5,0.1,'#d8322c','#ffffff'); p.position.set(0,1.6,-0.5); g.add(p);
+  return finish(g,1.06,1.06,1.7);
+}
+function buildPrep(){
+  var len=3.0, d=0.65, g=new THREE.Group();
+  g.add(at(box(len-0.1,0.08,d-0.1,'#3a4147'),0,0.04,0));
+  g.add(at(box(len,0.76,d,'#d4d9db'),0,0.46,0));
+  g.add(at(box(len+0.04,0.04,d+0.04,'#3d444a',{roughness:0.4}),0,0.86,0));
+  var n=4, w=len/n;
+  for(var i=0;i<n;i++){ var x=-len/2+w*(i+0.5); g.add(at(box(w-0.03,0.66,0.015,'#c3cacd'),x,0.46,d/2+0.006)); g.add(at(box(0.1,0.025,0.02,'#7d868c',METAL),x,0.7,d/2+0.025)); }
+  g.add(at(mk(boxGeo(0.7,0.014,0.42),SINK_MAT),0.55,0.883,0));
+  g.add(at(box(0.62,0.006,0.34,'#5f696f',METAL),0.55,0.893,0));
+  faucet(g,0.55,0.88,-0.26,1);
+  g.add(at(box(0.36,0.26,0.3,'#8e969c',METAL),-1.15,1.0,0)); g.add(at(box(0.2,0.1,0.01,'#222'),-1.15,1.02,0.155));   /* autoklaf */
+  g.add(at(box(0.32,0.12,0.26,'#c9d1d6',METAL),-0.65,0.94,0));                                                      /* water bath */
+  g.add(at(box(0.26,0.05,0.24,'#aab0b5',METAL),-0.2,0.905,0.02)); g.add(at(cyl(0.07,0.07,0.01,'#eee',{},14),-0.2,0.935,0.02)); /* timbangan */
+  g.add(beaker(0.0,0.88,0.1)); g.add(beaker(0.1,0.88,-0.1));
+  g.userData.sinks=1;
+  return finish(g,len,d,1.3);
+}
+function buildIsland(){
+  var w=1.8, d=0.8, g=new THREE.Group();
+  g.add(at(box(w,0.05,d,'#c9d1d6',{metalness:0.5,roughness:0.35}),0,0.895,0));
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(function(s){ g.add(at(box(0.05,0.87,0.05,'#8d959c',METAL),s[0]*(w/2-0.05),0.435,s[1]*(d/2-0.05))); });
+  g.add(at(box(w-0.1,0.03,d-0.1,'#aab3b9',METAL),0,0.25,0));
+  var m=microscope(1); m.position.set(-0.6,0.92,0); g.add(m);
+  g.add(at(cyl(0.09,0.09,0.06,'#2b3036',{},16),0.0,0.95,0.1)); g.add(beaker(0.0,0.98,0.1));
+  g.add(at(box(0.3,0.06,0.25,'#aab0b5',METAL),0.45,0.95,-0.05));
+  g.add(at(cyl(0.05,0.05,0.012,'#e8f0f4',{transparent:true,opacity:0.6,depthWrite:false},16),0.7,0.926,0.25));
+  g.add(at(cyl(0.05,0.05,0.012,'#e8f0f4',{transparent:true,opacity:0.6,depthWrite:false},16),0.55,0.926,0.28));
+  return finish(g,w,d,1.15);
+}
+function buildSekat(){
+  var g=new THREE.Group(), W=3.5, H2=2.4, c='#dfe6e0', gx0=-1.75, gx1=-0.9;
+  g.add(at(box(W/2-gx1,H2,0.1,c),(gx1+W/2)/2,H2/2,0));
+  g.add(at(box(gx1-gx0,H2-2.0,0.1,c),(gx0+gx1)/2,(H2+2.0)/2,0));
+  g.add(at(box(0.05,2.0,0.12,'#3b8a3a'),gx0+0.025,1.0,0)); g.add(at(box(0.05,2.0,0.12,'#3b8a3a'),gx1,1.0,0));
+  var pv=new THREE.Group(); pv.position.set(gx0+0.05,0,0.05); pv.add(at(box(0.75,1.96,0.04,'#8a6a47'),0.375,0.98,0)); pv.rotation.y=-1.0; g.add(pv);
+  var s1=plate('SEKAT',0.5,0.12,'#47564d','#ffffff'); s1.position.set(0.9,1.8,0.056); g.add(s1);
+  var s2=plate('SEKAT',0.5,0.12,'#47564d','#ffffff'); s2.position.set(0.9,1.8,-0.056); s2.rotation.y=PI; g.add(s2);
+  return finish(g,W,0.1,H2);
+}
+function buildTrash(){
+  var g=new THREE.Group();
+  [['#f2c230',-0.4],['#4ca37a',0],['#3b82c4',0.4]].forEach(function(b){
+    g.add(at(cyl(0.17,0.14,0.5,b[0]),b[1],0.25,0)); g.add(at(cyl(0.18,0.18,0.04,'#2b3238'),b[1],0.52,0));
+  });
+  return finish(g,1.0,0.4,0.6);
+}
+function buildPlant(){
+  var g=new THREE.Group();
+  g.add(at(cyl(0.2,0.15,0.35,'#b5654a'),0,0.175,0)); g.add(at(cyl(0.18,0.18,0.02,'#4a3a2c'),0,0.35,0));
+  for(var i=0;i<9;i++){
+    var a=i/9*PI*2, l=new THREE.Mesh(new THREE.SphereGeometry(0.12,10,8),mat(i%2?'#4f9a4f':'#3f8a45',{roughness:0.8}));
+    l.scale.set(0.5,1.7,0.25); l.position.set(Math.cos(a)*0.1,0.62,Math.sin(a)*0.1);
+    l.rotation.z=-Math.cos(a)*0.5; l.rotation.x=Math.sin(a)*0.5; l.rotation.y=-a; l.castShadow=true; g.add(l);
+  }
+  return finish(g,0.45,0.45,1.0);
+}
+
+var TOP_PODS=[-3.66,-1.2,1.26,3.41], BOT_PODS=[2.125,-0.858];
+var TYPES = {
+  meja:   {name:'Meja praktikum',   cap:'Meja 2,75 m dengan wastafel di tengah (7) dan colokan di kedua ujung (1).', build:buildTable, add:true},
+  bencha: {name:'Meja kerja dinding belakang', cap:'Meja sepanjang dinding belakang dengan empat panel colokan (1).', build:function(){ return buildBench(9.7,TOP_PODS); }},
+  benchb: {name:'Meja kerja dinding depan',    cap:'Meja di sisi pintu masuk dengan dua panel colokan (1).', build:function(){ return buildBench(6.9,BOT_PODS); }},
+  mejakiri:{name:'Meja panjang dinding kiri', cap:'Satu deret menerus di dinding kiri: wastafel (7) di kedua ujung dan meja panjang di tengah yang menyambung.', build:buildMejaKiri},
+  guru:   {name:'Meja dan kursi guru', cap:'Guru duduk di balik meja menghadap meja siswa.', build:buildGuru, add:true},
+  demo:   {name:'Meja demonstrasi',    cap:'Meja panjang 4,2 m untuk demonstrasi di depan kelas.', build:buildDemo, add:true},
+  papan:  {name:'Papan tulis',         cap:'Papan tulis di dinding kanan, area lantainya diberi tanda hijau.', build:buildBoard, add:true},
+  apar:   {name:'APAR dan P3K',        cap:'Dua APAR dan kotak P3K di pojok dekat pintu masuk.', build:buildApar, add:true},
+  prep:   {name:'Meja preparasi dan cuci alat', cap:'Meja dengan wastafel (7), autoklaf, water bath, dan timbangan.', build:buildPrep, add:true},
+  island: {name:'Meja kerja preparasi', cap:'Meja baja tahan karat di tengah ruang preparasi.', build:buildIsland, add:true},
+  kimia:  {name:'Lemari bahan kimia',   cap:'Berdasarkan abjad dan kategori. Pintu kaca bisa dibuka.', build:buildKimia, add:true},
+  gelas:  {name:'Rak alat gelas dan logam', cap:'Kotak berlabel di rak terbuka empat tingkat.', build:buildGelas, add:true},
+  mikro:  {name:'Rak mikroskop',        cap:'Rak mikroskop dan autoklaf tiga tingkat.', build:buildMikro, add:true},
+  fridge: {name:'Lemari pendingin spesimen', cap:'Lemari pendingin berpintu kaca untuk spesimen.', build:buildFridge, add:true},
+  bio:    {name:'Rak bahan biologi',    cap:'Awetan dan spesimen di rak kawat delapan tingkat.', build:buildBio, add:true},
+  sekat:  {name:'Sekat penyimpanan',    cap:'Sekat antara penyimpanan alat dan bahan dengan penyimpanan mikroskop. Seret ke atas atau bawah.', build:buildSekat, fixed:true, lockX:true, minZ:-3.6, maxZ:1.4},
+  sampah: {name:'Tempat sampah medis dan non medis', cap:'Tiga tempat sampah terpisah.', build:buildTrash, add:true},
+  tanaman:{name:'Tanaman hias',         cap:'Tanaman penyegar ruangan.', build:buildPlant, add:true}
+};
+
+window.__S = {THREE:THREE, scene:scene, camera:camera, controls:controls, renderer:renderer, canvas:canvas, stage:stage, VIEWS:VIEWS,
+  LX:LX, LX0:LX0, LZ:LZ, AX0:AX0, AX1:AX1, DZ:DZ, TYPES:TYPES, OUTLET_MAT:OUTLET_MAT, SINK_MAT:SINK_MAT, FIXED_SINKS:FIXED_SINKS};
+})();
+</script>
+<script>
+(function(){
+'use strict';
+var S = window.__S, THREE = S.THREE, scene = S.scene, camera = S.camera, controls = S.controls,
+    renderer = S.renderer, canvas = S.canvas, stage = S.stage, VIEWS = S.VIEWS, TYPES = S.TYPES,
+    LX = S.LX, LX0 = S.LX0, LZ = S.LZ, AX0 = S.AX0, AX1 = S.AX1, DZ = S.DZ, PI = Math.PI;
+function $(id){ return document.getElementById(id); }
+
+/* ---------- geometri murni (diuji terpisah) ---------- */
+/*PURE-START*/
+var SNAPSTEP = 0.05, WALLMAG = 0.12;
+var LABR = {x0:LX0, x1:LX, z0:-LZ, z1:LZ}, ANXR = {x0:AX0, x1:AX1, z0:-LZ, z1:LZ};
+function regionOf(o){ return o.x > (LX+AX0)/2 ? ANXR : LABR; }
+function ext(r,hx,hz){ var c=Math.abs(Math.cos(r)), s=Math.abs(Math.sin(r)); return {ex:c*hx+s*hz, ez:s*hx+c*hz}; }
+function rectOf(o){ var e=ext(o.r,o.hx,o.hz); return {x0:o.x-e.ex, x1:o.x+e.ex, z0:o.z-e.ez, z1:o.z+e.ez}; }
+function hit(a,b,eps){ eps=eps||0; return a.x0<b.x1-eps && a.x1>b.x0+eps && a.z0<b.z1-eps && a.z1>b.z0+eps; }
+function clampXZ(o){
+  var e=ext(o.r,o.hx,o.hz), R=regionOf(o);
+  o.x=Math.min(R.x1-e.ex, Math.max(R.x0+e.ex, o.x));
+  o.z=Math.min(R.z1-e.ez, Math.max(R.z0+e.ez, o.z));
+  if(o.minZ!==undefined) o.z=Math.max(o.z,o.minZ);
+  if(o.maxZ!==undefined) o.z=Math.min(o.z,o.maxZ);
+  return o;
+}
+function snapXZ(o,on){
+  if(on){ o.x=Math.round(o.x/SNAPSTEP)*SNAPSTEP; o.z=Math.round(o.z/SNAPSTEP)*SNAPSTEP; }
+  clampXZ(o);
+  if(on && !o.lock){
+    var e=ext(o.r,o.hx,o.hz), R=regionOf(o);
+    if(o.z-e.ez < R.z0+WALLMAG) o.z=R.z0+e.ez; else if(o.z+e.ez > R.z1-WALLMAG) o.z=R.z1-e.ez;
+    if(o.x-e.ex < R.x0+WALLMAG) o.x=R.x0+e.ex; else if(o.x+e.ex > R.x1-WALLMAG) o.x=R.x1-e.ex;
+  }
+  return o;
+}
+function validPos(o,others){
+  var a=rectOf(o), R=regionOf(o);
+  if(a.x0<R.x0-1e-6 || a.x1>R.x1+1e-6 || a.z0<R.z0-1e-6 || a.z1>R.z1+1e-6) return false;
+  if(o.minZ!==undefined && o.z<o.minZ-1e-6) return false;
+  if(o.maxZ!==undefined && o.z>o.maxZ+1e-6) return false;
+  for(var i=0;i<DZ.length;i++) if(hit(a,DZ[i],1e-4)) return false;
+  for(var j=0;j<others.length;j++) if(hit(a,rectOf(others[j]),1e-4)) return false;
+  return true;
+}
+/*PURE-END*/
+
+/* ---------- state ---------- */
+var items = [], selected = null, snapOn = true, labelsOn = false, hl1 = false, hl7 = false;
+var STORE_KEY = 'lab-denah-sketsa-v4';
+var TB = [-2.792,-1.875,-0.967,-0.058,0.858], TZ = [-2.1,1.383];
+var DEFAULTS = [];
+TZ.forEach(function(z){ TB.forEach(function(x){ DEFAULTS.push(['meja',x,z,0]); }); });
+DEFAULTS = DEFAULTS.concat([
+  ['bencha',0.02,-4.345,0],['benchb',-1.4,4.345,PI],
+  ['guru',3.192,-2.775,PI/2],['mejakiri',-5.355,0,PI/2],['demo',1.942,-0.104,0],['papan',4.5,0,-PI/2],['apar',4.1,4.1,PI],
+  ['sekat',6.725,-0.3,0],
+  ['kimia',6.55,0.045,0],['gelas',7.8,0.02,0],['bio',8.215,1.25,-PI/2],['fridge',8.115,3.3,-PI/2],
+  ['prep',6.6,4.365,PI],['island',7.0,2.4,0],
+  ['mikro',5.55,-4.44,0],['mikro',6.7,-4.44,0],['mikro',7.85,-4.44,0]
+]);
+
+function plain(g){
+  var T=TYPES[g.userData.type];
+  return {x:g.position.x, z:g.position.z, r:g.rotation.y, hx:g.userData.hx, hz:g.userData.hz, minZ:T.minZ, maxZ:T.maxZ, lock:!!T.lockX};
+}
+function othersOf(g){ return items.filter(function(i){ return i!==g; }).map(plain); }
+function normAngle(r){ return Math.atan2(Math.sin(r),Math.cos(r)); }
+
+function makeItem(type,x,z,r){
+  var T=TYPES[type]; if(!T) return null;
+  var g=T.build(), d=g.userData.dims;
+  g.userData.type=type; g.userData.hx=d.w/2; g.userData.hz=d.d/2;
+  var hx=d.w/2, hz=d.d/2;
+  var ol=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-hx,0.03,-hz),new THREE.Vector3(hx,0.03,-hz),new THREE.Vector3(hx,0.03,hz),new THREE.Vector3(-hx,0.03,hz)]),
+    new THREE.LineBasicMaterial({color:0x2fbf6a}));
+  ol.visible=false; ol.raycast=function(){}; g.userData.outline=ol; g.add(ol);
+  var tg=document.createElement('div'); tg.className='tag'; tg.textContent=T.name; tg.hidden=true;
+  $('badges').appendChild(tg); g.userData.tag=tg;
+  g.position.set(x,0,z); g.rotation.y=r||0;
+  scene.add(g); items.push(g);
+  return g;
+}
+function disposeItem(g){
+  scene.remove(g);
+  if(g.userData.tag && g.userData.tag.parentNode) g.userData.tag.parentNode.removeChild(g.userData.tag);
+  g.userData.outline.geometry.dispose();
+  items=items.filter(function(i){ return i!==g; });
+}
+function save(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(items.map(function(g){ return [g.userData.type,+g.position.x.toFixed(3),+g.position.z.toFixed(3),+g.rotation.y.toFixed(4)]; }))); }catch(e){}
+}
+function loadLayout(list){
+  items.slice().forEach(disposeItem); selected=null;
+  list.forEach(function(d){ makeItem(d[0],d[1],d[2],d[3]); });
+  updateStats();
+}
+function loadSaved(){
+  try{
+    var a=JSON.parse(localStorage.getItem(STORE_KEY)||'null');
+    if(Array.isArray(a)&&a.length&&a.every(function(d){ return TYPES[d[0]]&&isFinite(d[1])&&isFinite(d[2])&&isFinite(d[3]); })
+       && a.filter(function(d){ return d[0]==='sekat'; }).length===1){
+      var placed=[], ok=true;
+      a.forEach(function(d){
+        var T=TYPES[d[0]], dm=T.build().userData.dims;
+        var o={x:d[1],z:d[2],r:d[3],hx:dm.w/2,hz:dm.d/2,minZ:T.minZ,maxZ:T.maxZ,lock:!!T.lockX};
+        if(!validPos(o,placed)) ok=false; placed.push(o);
+      });
+      if(ok) return a;
+    }
+  }catch(e){}
+  return null;
+}
+
+/* ---------- gerak, putar, tambah ---------- */
+function tryMove(g,nx,nz){
+  var o=plain(g), others=othersOf(g), T=TYPES[g.userData.type];
+  if(T.lockX) nx=o.x;
+  var cands=[[nx,nz],[nx,o.z],[o.x,nz]];
+  for(var i=0;i<cands.length;i++){
+    var c=snapXZ({x:cands[i][0],z:cands[i][1],r:o.r,hx:o.hx,hz:o.hz,minZ:o.minZ,maxZ:o.maxZ,lock:o.lock},snapOn);
+    if(T.lockX) c.x=o.x;
+    if(validPos(c,others)){ g.position.x=c.x; g.position.z=c.z; return true; }
+  }
+  return false;
+}
+function rotate(dir){
+  if(!selected || TYPES[selected.userData.type].lockX) return;
+  var o=plain(selected); o.r=normAngle(o.r+dir*PI/2);
+  var c=clampXZ(o);
+  if(!validPos(c,othersOf(selected))){ setHint('Tidak bisa diputar di sini karena menabrak unit lain, dinding, atau area pintu. Geser dulu perabotnya.'); return; }
+  selected.rotation.y=c.r; selected.position.x=c.x; selected.position.z=c.z; changed();
+}
+function addItem(type){
+  var d=TYPES[type].build().userData.dims, hx=d.w/2, hz=d.d/2, others=items.map(plain), found=null;
+  [LABR,ANXR].forEach(function(R){
+    for(var z=R.z0+hz+0.02; z<=R.z1-hz && !found; z+=0.25){
+      for(var x=R.x0+hx; x<=R.x1-hx; x+=0.25){
+        var o={x:x,z:z,r:0,hx:hx,hz:hz};
+        if(validPos(o,others)){ found=o; break; }
+      }
+    }
+  });
+  if(!found){ setHint('Tidak ada ruang kosong untuk perabot ini. Hapus atau geser perabot lain dulu.'); return; }
+  var g=makeItem(type,found.x,found.z,0); select(g); changed();
+  setHint(TYPES[type].name+' ditambahkan di tempat kosong pertama. Seret ke posisi yang diinginkan.');
+}
+function removeSel(){
+  if(!selected || TYPES[selected.userData.type].fixed) return; var g=selected; select(null); disposeItem(g); changed();
+  setHint('Perabot dihapus. Tambahkan lagi lewat menu "Tambah perabot".');
+}
+function toggleDoor(){
+  if(!selected || !selected.userData.doors.length) return;
+  selected.userData.doorOpen=!selected.userData.doorOpen; refreshPanel();
+}
+
+/* ---------- ringkasan ---------- */
+function updateStats(){
+  var n={meja:0}, sinks=S.FIXED_SINKS, outlets=0;
+  items.forEach(function(g){
+    if(g.userData.type==='meja') n.meja++;
+    sinks+=g.userData.sinks||0; outlets+=g.userData.outlets||0;
+  });
+  $('stMeja').textContent=n.meja;
+  $('stSink').textContent=sinks;
+  $('stOut').textContent=outlets;
+  var counts={};
+  items.forEach(function(g){ counts[g.userData.type]=(counts[g.userData.type]||0)+1; });
+  document.querySelectorAll('.legend button[data-type]').forEach(function(b){
+    var c=counts[b.dataset.type]||0; b.querySelector('.c').textContent=c;
+    b.disabled=false;
+  });
+}
+function changed(){ updateStats(); save(); refreshPanel(); }
+
+/* ---------- pemilihan & panel ---------- */
+function setOutline(g,on){ if(g) g.userData.outline.visible=on; }
+function select(g){
+  if(selected) setOutline(selected,false);
+  selected=g||null;
+  if(selected) setOutline(selected,true);
+  refreshPanel();
+}
+function cm(v){ return Math.round(v*100); }
+function fmt(v){ return v.toFixed(2).replace('.',','); }
+function roomOf(g){
+  if(g.position.x<=(LX+AX0)/2) return 'Laboratorium';
+  var sk=items.filter(function(i){ return i.userData.type==='sekat'; })[0], sz=sk?sk.position.z:-0.3;
+  return g.position.z<sz ? 'Penyimpanan mikroskop' : 'Ruang preparasi';
+}
+function refreshPanel(){
+  var body=$('selBody'), t=$('selTitle'), rl=$('rotL'), rr=$('rotR'), del=$('del'), db=$('doorBtn');
+  var activeType=null;
+  if(selected){
+    var ty=selected.userData.type, T=TYPES[ty], d=selected.userData.dims, e=ext(selected.rotation.y,selected.userData.hx,selected.userData.hz);
+    t.textContent=T.name;
+    body.innerHTML='<p>'+T.cap+'</p>'
+      +'<p class="dim">Ruang <b>'+roomOf(selected)+'</b><br>Ukuran <b>'+cm(d.w)+' × '+cm(d.d)+' × '+cm(d.h)+' cm</b><br>'
+      +'Tepi kiri ke dinding kiri lab <b>'+fmt(selected.position.x-e.ex-LX0)+' m</b><br>'
+      +'Tepi belakang ke dinding belakang <b>'+fmt(selected.position.z-e.ez+LZ)+' m</b></p>';
+    rl.disabled=rr.disabled=!!T.lockX; del.disabled=!!T.fixed;
+    db.disabled=!selected.userData.doors.length; db.textContent=selected.userData.doorOpen?'Tutup pintu':'Buka pintu';
+    activeType=ty;
+  }else{
+    t.textContent='Perabot terpilih';
+    body.innerHTML='<p>Ketuk salah satu perabot di denah untuk memilihnya.</p>';
+    rl.disabled=rr.disabled=del.disabled=db.disabled=true; db.textContent='Buka pintu';
+  }
+  document.querySelectorAll('.legend button[data-type]').forEach(function(b){ b.setAttribute('aria-pressed',String(b.dataset.type===activeType)); });
+}
+var hintTimer=null, DEFHINT='Seret perabot untuk memindahkan. Seret area kosong untuk memutar. Dua jari untuk zoom.';
+function setHint(t){ $('hint').textContent=t; clearTimeout(hintTimer); hintTimer=setTimeout(function(){ $('hint').textContent=DEFHINT; },4500); }
+
+/* ---------- interaksi seret ---------- */
+var ray=new THREE.Raycaster(), ndc=new THREE.Vector2(), plane=new THREE.Plane(new THREE.Vector3(0,1,0),0), hitP=new THREE.Vector3();
+var drag=null, down=null;
+function setNdc(e){
+  var r=canvas.getBoundingClientRect();
+  ndc.set(((e.clientX-r.left)/r.width)*2-1, -((e.clientY-r.top)/r.height)*2+1);
+  ray.setFromCamera(ndc,camera);
+}
+function pick(e){
+  setNdc(e);
+  var hits=ray.intersectObjects(items,true);
+  for(var i=0;i<hits.length;i++){
+    var o=hits[i].object; while(o && o.parent!==scene) o=o.parent;
+    if(o && items.indexOf(o)>=0) return o;
+  }
+  return null;
+}
+canvas.addEventListener('pointerdown',function(e){
+  if(drag) return;
+  if(e.pointerType==='mouse' && e.button!==0) return;
+  var p=pick(e);
+  down={x:e.clientX,y:e.clientY,hit:!!p};
+  if(p){
+    select(p); setNdc(e);
+    if(ray.ray.intersectPlane(plane,hitP)){
+      drag={g:p,id:e.pointerId,ox:p.position.x-hitP.x,oz:p.position.z-hitP.z,moved:false};
+      controls.enabled=false;
+      try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
+      canvas.style.cursor='grabbing'; canvas.focus({preventScroll:true});
+    }
+  }
+},true);
+canvas.addEventListener('pointermove',function(e){
+  if(drag){
+    if(e.pointerId!==drag.id) return;
+    setNdc(e);
+    if(ray.ray.intersectPlane(plane,hitP)){
+      if(tryMove(drag.g,hitP.x+drag.ox,hitP.z+drag.oz)){ drag.moved=true; refreshPanel(); }
+    }
+  }else if(e.pointerType==='mouse'){
+    canvas.style.cursor=pick(e)?'grab':'default';
+  }
+});
+function endDrag(e){
+  if(drag && e.pointerId===drag.id){
+    var was=drag; drag=null; controls.enabled=true; canvas.style.cursor='default';
+    if(was.moved) changed();
+  }else if(down && !down.hit && Math.hypot(e.clientX-down.x,e.clientY-down.y)<5){
+    select(null);
+  }
+  down=null;
+}
+canvas.addEventListener('pointerup',endDrag);
+canvas.addEventListener('pointercancel',endDrag);
+canvas.addEventListener('dblclick',function(e){ var p=pick(e); if(p){ select(p); toggleDoor(); } });
+canvas.addEventListener('keydown',function(e){
+  if(!selected) return;
+  var k=e.key, s=SNAPSTEP*2, used=true, nx=selected.position.x, nz=selected.position.z, mv=false;
+  if(k==='r'||k==='R') rotate(1);
+  else if(k===' '||k==='Enter') toggleDoor();
+  else if(k==='Delete'||k==='Backspace') removeSel();
+  else if(k==='Escape') select(null);
+  else if(k==='ArrowLeft'){ nx-=s; mv=true; }
+  else if(k==='ArrowRight'){ nx+=s; mv=true; }
+  else if(k==='ArrowUp'){ nz-=s; mv=true; }
+  else if(k==='ArrowDown'){ nz+=s; mv=true; }
+  else used=false;
+  if(used) e.preventDefault();
+  if(mv && tryMove(selected,nx,nz)) changed();
+});
+
+/* ---------- kamera ---------- */
+var anim=null;
+function setView(name){
+  var v=VIEWS[name]; if(!v) return;
+  anim={pos:v.pos.clone(),tgt:v.tgt.clone()};
+  document.querySelectorAll('[data-view]').forEach(function(b){ b.setAttribute('aria-pressed',String(b.dataset.view===name)); });
+}
+controls.addEventListener('start',function(){ anim=null; document.querySelectorAll('[data-view]').forEach(function(b){ b.setAttribute('aria-pressed','false'); }); });
+document.querySelectorAll('[data-view]').forEach(function(b){ b.addEventListener('click',function(){ setView(b.dataset.view); }); });
+
+/* ---------- sorotan angka 1 (colokan) dan 7 (wastafel) ---------- */
+function applyHl(){
+  S.OUTLET_MAT.emissiveIntensity = hl1 ? 1.0 : 0;
+  S.SINK_MAT.emissiveIntensity   = hl7 ? 0.9 : 0;
+  document.querySelector('[data-sym="1"]').setAttribute('aria-pressed',String(hl1));
+  document.querySelector('[data-sym="7"]').setAttribute('aria-pressed',String(hl7));
+}
+
+/* ---------- UI ---------- */
+(function buildUI(){
+  var lg=$('legend'), sel=$('addSel');
+  Object.keys(TYPES).forEach(function(k){
+    var T=TYPES[k], b=document.createElement('button'); b.type='button'; b.dataset.type=k; b.setAttribute('aria-pressed','false');
+    b.innerHTML='<span class="t">'+T.name+'</span><span class="c">0</span>';
+    b.addEventListener('click',function(){
+      var list=items.filter(function(g){ return g.userData.type===k; });
+      if(!list.length){ setHint('Belum ada '+T.name.toLowerCase()+' di denah.'+(T.add?' Tambahkan lewat menu di bawah.':'')); return; }
+      select(list[(list.indexOf(selected)+1)%list.length]);
+    });
+    lg.appendChild(b);
+    if(T.add){ var o=document.createElement('option'); o.value=k; o.textContent=T.name; sel.appendChild(o); }
+  });
+  $('addBtn').addEventListener('click',function(){ addItem(sel.value); });
+  $('rotL').addEventListener('click',function(){ rotate(-1); });
+  $('rotR').addEventListener('click',function(){ rotate(1); });
+  $('del').addEventListener('click',removeSel);
+  $('doorBtn').addEventListener('click',toggleDoor);
+  var rst=$('reset'), rstT=null;
+  rst.addEventListener('click',function(){
+    if(rst.dataset.armed!=='1'){
+      rst.dataset.armed='1'; rst.textContent='Klik lagi untuk mengembalikan';
+      rstT=setTimeout(function(){ rst.dataset.armed='0'; rst.textContent='Kembalikan susunan sketsa'; },3000);
+    }else{
+      clearTimeout(rstT); rst.dataset.armed='0'; rst.textContent='Kembalikan susunan sketsa';
+      loadLayout(DEFAULTS); save(); refreshPanel(); setHint('Susunan dikembalikan seperti di sketsa.');
+    }
+  });
+  $('tgLabel').addEventListener('click',function(){ labelsOn=!labelsOn; this.setAttribute('aria-pressed',String(labelsOn)); });
+  $('tgSnap').addEventListener('click',function(){ snapOn=!snapOn; this.setAttribute('aria-pressed',String(snapOn)); });
+  document.querySelector('[data-sym="1"]').addEventListener('click',function(){ hl1=!hl1; applyHl(); });
+  document.querySelector('[data-sym="7"]').addEventListener('click',function(){ hl7=!hl7; applyHl(); });
+})();
+
+/* ---------- ukuran & loop ---------- */
+var W=1,H=1;
+function resize(){
+  var r=stage.getBoundingClientRect(); W=Math.max(1,Math.floor(r.width)); H=Math.max(1,Math.floor(r.height));
+  renderer.setSize(W,H,false); camera.aspect=W/H; camera.fov=W/H<0.9?56:40; camera.updateProjectionMatrix();
+}
+try{ new ResizeObserver(resize).observe(stage); }catch(e){ window.addEventListener('resize',resize); }
+resize();
+
+loadLayout(loadSaved()||DEFAULTS);
+refreshPanel(); applyHl();
+
+var v3=new THREE.Vector3();
+function frame(){
+  if(anim){
+    camera.position.lerp(anim.pos,0.12); controls.target.lerp(anim.tgt,0.12);
+    if(camera.position.distanceTo(anim.pos)<0.02 && controls.target.distanceTo(anim.tgt)<0.02) anim=null;
+  }
+  controls.update();
+  for(var i=0;i<items.length;i++){
+    var g=items[i], u=g.userData;
+    for(var k=0;k<u.doors.length;k++){
+      var d=u.doors[k], tgt=u.doorOpen?d.ang:0;
+      d.pv.rotation.y+=(tgt-d.pv.rotation.y)*0.14;
+    }
+    var tg=u.tag;
+    if(!(labelsOn || g===selected)){ tg.hidden=true; continue; }
+    v3.set(g.position.x,u.dims.h+0.1,g.position.z).project(camera);
+    if(v3.z>1){ tg.hidden=true; continue; }
+    tg.hidden=false;
+    tg.style.transform='translate('+((v3.x*0.5+0.5)*W).toFixed(1)+'px,'+((-v3.y*0.5+0.5)*H).toFixed(1)+'px) translate(-50%,-100%)';
+  }
+  renderer.render(scene,camera);
+  requestAnimationFrame(frame);
+}
+frame();
+})();
+</script>
+</body>
+</html>
